@@ -4,7 +4,7 @@ from ticktick.api import TickTickClient
 import os
 import json #use a json file to locally store notion and ticktick data
 import threading
-import config, state
+import config
 from notion_client import Client
 from pprint import pprint
 from datetime import datetime, timedelta
@@ -125,11 +125,7 @@ def initSyncNotion():
         elif priorityName == "High":
             priorityNum = 5
         
-        #To do: add tags support? 
-        try:
-            tagDetail = key['properties']['Tags']['multiselect']
-        except:
-            print("No tags found for Notion task " + notionPageID + ".") 
+        #To do: add tags support? but have to add this feature to sdk first
         
 
         allday = False
@@ -183,7 +179,6 @@ def initSyncNotion():
             
             newTask['isAllDay'] = allday 
             #to do: Add tags ability
-            #newTask['tags'] = tagItem
             
             #search for project ID
             
@@ -276,12 +271,6 @@ def initLocalDict():
        
     #check matching entries -- if match, save into new, checking differences between the two and update accordingly. 
     
-    
-#daemon thread??? probably dont need if using pythoneverywhere 0-0
-def thread():
-    #create new thread
-    thread = Thread(daemon=True)
-    
 
 
 #now, check the local files to see if there is a key 
@@ -297,19 +286,27 @@ def checkForChanges():
     toUpdateTTasks = {} 
     
     print("Checking for changes between current Notion tasks and cached Notion tasks...")
+ 
+ #fix: NTTasks is null
+ 
     for id, info in NTTasks.items():
         try:
+            print(oldNotionDbs['id'])
+            print(NTTasks['id'])
             if oldNotionDbs[id] != NTTasks[id]:
                  #hence add into updating tasks list
                  #this is notion to ticktick
+                print("Found task " + id + " and adding to update dictionary...")
                 toUpdateNTTasks[id] = info 
         except:
             toUpdateNTTasks[id] = info
             
+    print("Checking for changes between current Ticktick tasks and cached Ticktick tasks...")
     for id, info in TTtasks.items():
         try:
             #ticktick to notion update
             if oldTicktickDbs[id] != TTtasks[info]:
+                print("Found task " + id + " and adding to update dictionary...")
                 toUpdateTTasks[id] = info
         except:
             toUpdateTTasks[id] = info
@@ -323,10 +320,50 @@ def checkForChanges():
     for id, info in toUpdateNTTasks.items():
         tickTickTask = client.get_by_id(id)
         #update task dictionary with new params
-        tickTickTask['name'] = info['properties'] ['Name']['title'][0]['text']['content']
+        tickTickTask['title'] = info['properties'] ['Name']['title'][0]['text']['content']
         tickTickTask['priority'] = info['properties']['Priority']
+        
+        #check for all day task 
+        
+        dateDict = info['properties']['date']
+        
+        allday = False
+        if dateDict is not None:
+            dateStart = dateDict['start']
+            
+            try:
+                dateStart = datetime.strptime(dateStart, "%Y-%m-%dT%H:%M:%S.%f%z") #wont work if theres only a day not a time included
+            except:
+                dateStart = datetime.fromisoformat(dateStart)
+                allday = True
+                print(str(dateStart))
+            try:
+                dateEnd = dateDict['end']
+                dateEnd = datetime.fromisoformat(dateEnd)
+                #to do: if the start and end dates are different, check if it is an all day event, and then dont include time in ticktick
+            except:
+                dateEnd = None
+        
         #check status based on the state in notion
-        statusAsInt = info['properties']['Status']['checked'] 
+        taskStatusBool = info['properties']['Done']['checkbox'] 
+        #depending on the state of checked or unchecked, the ticktick task is either finished or not
+        if taskStatusBool == True:
+            tickTickTask['status'] = 1
+        
+        #update the calendar/project name
+        try:
+            projectID = client.get_by_fields(name=info['properties']['Calendar']['select']['name'], search='projects') 
+            tickTickTask['projectId'] = projectID['id'] 
+        except: #if ID was not found, create new one
+            print("ID for project " + str(info['properties']['Calendar']['select']['name']) + " was not found. Creating new project...")
+        
+        
+        
+        
+        #once completed, sync the newly updated file to ticktick
+        updatedTTTask = client.task.update(tickTickTask)
+        
+        
         
         
         
@@ -347,7 +384,7 @@ def checkForTTCompleted():
     
     getFromDate = datetime.now() 
     #Check ticktick's most recent 100 completed items. Determine key value, then lookup this key in the cached TT db, if exists, add task to 'completedTTTask' dict
-    complete_tasks = client.task.get_completed()
+    complete_tasks = client.task.get_completed(datetime.now())
     
 #to do: Checks for deleted tasks from either ticktick or notion and deletes the corresponding key from each database (must check that the task wasn't just completed from ticktick first)
 def checkForDeleted():
