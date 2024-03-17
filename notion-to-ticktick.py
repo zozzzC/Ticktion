@@ -1,6 +1,6 @@
 #A simple script that syncs notion and ticktick tasks together.
-from ticktick.oauth2 import OAuth2
-from ticktick.api import TickTickClient
+#from ticktick.oauth2 import OAuth2
+#from ticktick.api import TickTickClient
 import os
 import json #use a json file to locally store notion and ticktick data
 import threading
@@ -8,6 +8,17 @@ import config
 from notion_client import Client
 from pprint import pprint
 from datetime import datetime, timedelta
+import sys
+
+print(sys.path)
+
+path = 'Documents/coding/ticktick\ py\ fork/ticktick-py'
+
+sys.path.insert(0, path)
+
+from ticktick.oauth2 import OAuth2
+from ticktick.api import TickTickClient
+
 
 #setup local environment variables on your machine. if you're having trouble please check the readme!
 
@@ -19,13 +30,13 @@ def main():
     
 def initUserVars():
     global notion, client
+    
     try: 
         notion = Client(auth=os.environ["NOTION_TOKEN"])
     except:
         notion = Client(auth=config.notion_token)
-    auth_client = OAuth2(client_id=config.client_id,
-             client_secret=config.client_secret,
-                 redirect_uri=config.uri)
+    
+    auth_client = OAuth2(client_id=config.client_id, client_secret=config.client_secret, redirect_uri=config.uri)   
     
     client = TickTickClient(config.username, config.password, auth_client)
     
@@ -234,7 +245,7 @@ def getAllTasks(): #gets all tasks in both ticktick and notion and lists them ou
         }
     )
     
-    #initSyncTT()
+    initSyncTT()
     initSyncNotion()
 
 
@@ -244,6 +255,10 @@ def initLocalDict():
     global oldNotionDbs, oldTicktickDbs
     oldNotionDbs = {}
     oldTicktickDbs = {}
+   
+   
+    print("init local dict check if NTTasks exists: " + NTTasks)
+    
     
     if (os.path.exists(dictFilePath) == True):
         #to do: parse the old saved dict. into the python dict
