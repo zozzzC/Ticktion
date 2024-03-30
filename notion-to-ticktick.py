@@ -10,11 +10,9 @@ from pprint import pprint
 from datetime import datetime, timedelta
 import sys
 
-print(sys.path)
+#TODO: before committing to github, change sys.path append to env variable or python path? 
 
-path = 'Documents/coding/ticktick\ py\ fork/ticktick-py'
-
-sys.path.insert(0, path)
+#TODO: save to $PYTHONPATH variable before push!
 
 from ticktick.oauth2 import OAuth2
 from ticktick.api import TickTickClient
@@ -56,6 +54,9 @@ def initSyncTT():
             print(item.get("title"))
             
             title = item.get("title")
+            
+            #TODO: change default priority name to null
+            priorityName = "Low"
             
             if item.get("priority") == 1:
                 priorityName = "Low"
@@ -189,7 +190,7 @@ def initSyncNotion():
                 newTask['dueDate'] = dateEnd.strftime("%Y-%m-%dT%H:%M:%S+1300")
             
             newTask['isAllDay'] = allday 
-            #to do: Add tags ability
+            #TODO: Add tags ability
             
             #search for project ID
             

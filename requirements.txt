@@ -1,0 +1,5 @@
+notion==0.0.28
+notion-client==2.0.0
+oauth2==1.9.0.post1
+ticktick-fork @ git+https://github.com/zozzzC/ticktick-py.git
+requests==2.26.0
