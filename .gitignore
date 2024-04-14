@@ -1,3 +1,5 @@
 .*
 !.gitignore
 config.py
+notiondbs.json
+ticktickdbs.json
